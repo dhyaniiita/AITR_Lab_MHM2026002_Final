@@ -1,1 +1,8 @@
-
+Category,Variant ID,0.5B Flip,1.5B Flip
+Surface,P1_separators,1.000,0.333
+Surface,P2_json_format,0.933,0.167
+Semantic,P3_para_1,0.967,0.367
+Semantic,P4_para_2,0.033,0.500
+Positional,P5_reverse_opt,0.967,0.467
+Contextual,P6_confirm,0.667,0.300
+Contextual,P7_skeptical,0.033,0.300
