@@ -7,14 +7,19 @@
 \usepackage{url}
 \usepackage{float}
 
+% Enable clickable citations and cross-references in IEEEtran
+\makeatletter
+\let\NAT@parse\undefined
+\makeatother
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
 \begin{document}
 
 \title{Prompt Sensitivity and Its Effect on the Stability of LLM-Generated Research Conclusions: An Empirical Implementation}
 
 \author{
 \IEEEauthorblockN{Dhyan Shah}
-\IEEEauthorblockA{\textit{M.Tech (IT), Semester I} \\
-\textit{IIIT Allahabad}\\
+\IEEEauthorblockA{\textit{IIIT Allahabad}\\
 Prayagraj, Uttar Pradesh, India}
 }
 
@@ -25,11 +30,11 @@ LLMs are becoming increasingly popular within multi-agent pipelines but are know
 \end{abstract}
 
 \begin{IEEEkeywords}
-prompt sensitivity, large language models, conclusion stability, cascading failures, multi-agent pipelines
+Prompt sensitivity, Large language models, Conclusion stability, Cascading failures, Multi-agent pipelines
 \end{IEEEkeywords}
 
 \section{Introduction}
-Researchers are using Large Language Models (LLMs) within complex multi-stage pipelines to automate literature synthesis, evidence categorisation, and analysis \cite{wang2024survey, xi2023rise}. Although autonomous, this brings concerns about the reliability of the models \cite{mizrahi2024state}. LLM outputs can be very dependent on the order of instructions in the prompt \cite{reynolds2021prompt, zhou2023large}.
+Researchers are using Large Language Models (LLMs) within complex multi-stage pipelines to automate literature synthesis, evidence categorisation and analysis \cite{wang2024survey, xi2023rise}. Although autonomous, this brings concerns about the reliability of the models \cite{mizrahi2024state}. LLM outputs can be very dependent on the order of instructions in the prompt \cite{reynolds2021prompt, zhou2023large}.
 
 Previous works have shown that LLMs are highly sensitive to slight prompt changes \cite{sclar2024quantifying, salinas2024}. Simple changes to the prompt, including additional whitespace and formatting, can cause huge differences in model predictions \cite{lu2022fantastically}. In automated research, these errors will not be isolated. Any hallucinations or formatting errors in one stage (i.e., document search) will cause corrupted inputs in further stages of processing (e.g., evidence extraction/verification) \cite{mialon2023augmented, wu2023agentbench}.
 
@@ -41,13 +46,13 @@ This paper explores the likelihood of errors caused by prompt sensitivity and ho
 Our method is based upon previous works looking at prompt resilience and cognitive bias within agents.
 
 \subsection{Formatting Sensitivity}
-It has recently been shown that LLMs are highly sensitive to formatting \cite{sclar2024quantifying, salinas2024}. Extensive work was done by Sclar et al.\ \cite{sclar2024quantifying} looking at few-shot classification tasks. The models were very sensitive to minimal changes in formatting. Changing the separator or adding extra whitespace caused huge drops in performance for models such as LLaMA-2, and similar drops were seen when changing the desired output format. This shows models overfit to the formatting distributions present in their instruction tuning \cite{ouyang2022training, huang2023towards}.
+It has recently been shown that LLMs are highly sensitive to formatting \cite{sclar2024quantifying, salinas2024}. Extensive work was done by Sclar et al. \cite{sclar2024quantifying} looking at few-shot classification tasks. The models were very sensitive to minimal changes in formatting. Changing the separator or adding extra whitespace caused huge drops in performance for models such as LLaMA-2, and similar drops were seen when changing the desired output format. This shows models overfit to the formatting distributions present in their instruction tuning \cite{ouyang2022training, huang2023towards}.
 
 \subsection{Semantic Sensitivity}
-Formatting sensitivity looks at formatting. Semantic sensitivity looks at the wording of instructions \cite{webson2022do}. Errica et al.\ \cite{errica2025wrong} created mathematical frameworks to ensure a model's true task performance is robust. They use semantic paraphrasing to separate the model's performance into two categories: Sensitivity (Normalised Entropy) and Consistency (Total Variation Distance) \cite{elazar2021measuring}.
+Formatting sensitivity looks at formatting. Semantic sensitivity looks at the wording of instructions \cite{webson2022do}. Errica et al. \cite{errica2025wrong} created mathematical frameworks to ensure a model's true task performance is robust. They use semantic paraphrasing to separate the model's performance into two categories: Sensitivity (Normalised Entropy) and Consistency (Total Variation Distance) \cite{elazar2021measuring}.
 
 \subsection{Positional Bias in LLM-as-a-Judge Architectures}
-When using models to evaluate, extract, or rank candidates, there will be bias due to the ordering of the candidates \cite{lu2022fantastically}. There are three types of bias: positional, verbosity, and self-enhancement \cite{zheng2023judging} in LLM-as-a-Judge architectures. This means there will be bias in the extracted claim if the evidence or candidate conclusions are ordered in the prompt in the research pipeline.
+When using models to evaluate, extract, or rank candidates, there will be bias due to the ordering of the candidates \cite{lu2022fantastically}. There are three types of bias: positional, verbosity, and self-enhancement \cite{zheng2023judging} in LLM-as-a-Judge Architectures. This means there will be bias in the extracted claim if the evidence or candidate conclusions are ordered in the prompt in the research pipeline.
 
 \section{Method and Setup}
 We created a repeatable Phase 3 pipeline in Python. All experiments were conducted using Google Colab and a Tesla T4 GPU to look at conclusion stability in LLMs.
@@ -56,28 +61,16 @@ We created a repeatable Phase 3 pipeline in Python. All experiments were conduct
 We used the \texttt{qiaojin/PubMedQA} dataset \cite{jin2019pubmedqa}. We specifically used the subset of \texttt{pqa\_labeled}, where we are given an abstract and must produce a `yes/no/maybe' conclusion to answer a biomedical question. We sampled 10 examples from each category, which totals to 30 questions \cite{honovich2022true}.
 
 \subsection{Models}
-We used two Qwen models \cite{qwen2024}. We tested the impact of parameter sizing upon stability by comparing \texttt{Qwen2.5-0.5B-Instruct} vs.\ \texttt{Qwen2.5-1.5B-Instruct}. To look at how the perturbations affect the model, we used a deterministic (greedy) decoding method (\texttt{do\_sample=False}), which means any sampling variance will only come from the prompt \cite{kojima2022large}.
+We used two Qwen models \cite{qwen2024}. We tested the impact of parameter sizing upon stability by comparing \texttt{Qwen2.5-0.5B-Instruct} vs \texttt{Qwen2.5-1.5B-Instruct}. To look at how the perturbations affect the model, we used a deterministic (greedy) decoding method (\texttt{do\_sample=False}), which will mean any sampling variance will only come from the prompt \cite{kojima2022large}.
 
 \subsection{Prompt Variation}
-We created a base prompt ($P_0$) requesting a neutral conclusion with a brief explanation. We created 7 variations:
-\begin{itemize}
-    \item \textbf{Baseline ($P_0$):} Standard neutral instruction.
-    \item \textbf{Surface/Formatting ($P_1, P_2$):} Included capitalisation and \texttt{\#} symbols, and asked for the output to be returned in a JSON format \cite{sclar2024quantifying}.
-    \item \textbf{Semantic Paraphrase ($P_3, P_4$):} Used semantic paraphrasing and brief clinical summarisation \cite{errica2025wrong}.
-    \item \textbf{Positional/Order ($P_5$):} Reversed the order of the options so the accepted string was changed to `maybe, no, or yes', and also reversed the `Abstract' and `Question' blocks \cite{lu2022fantastically}.
-    \item \textbf{Contextual/Framing ($P_6, P_7$):} Requested the model to answer the question as a confirmative peer reviewer or a strict sceptical auditor \cite{webson2022do}.
-\end{itemize}
-
-We needed to eliminate sampling noise. We ran 5 runs of the base prompt with non-deterministic decoding (\texttt{temperature=0.3}). This allows us to compare the instability of the prompt to a Repeat Control \cite{wang2023self}.
+We created a base prompt ($P_{0}$) requesting a neutral conclusion with a brief explanation. We created 7 variations. $P_{1}$ and $P_{2}$ included capitalisation and \# symbols. We asked for the prompt to be returned in a JSON format \cite{sclar2024quantifying}. $P_{3}$ and $P_{4}$ used semantic paraphrasing and brief clinical summarisation \cite{errica2025wrong}. $P_{5}$ reversed the order of the options. The accepted string was changed to `maybe, no, or yes'. The `Abstract' and `Question' were also reversed \cite{lu2022fantastically}. $P_{6}$ and $P_{7}$ requested the model to answer the question as a confirmative peer reviewer or a strict sceptical auditor \cite{webson2022do}. We needed to eliminate sampling noise. We ran 5 runs of the base prompt with non-deterministic decoding (\texttt{temperature=0.3}). This allows us to compare the instability of the prompt to a Repeat Control \cite{wang2023self}.
 
 \subsection{Metrics and Claim Extraction}
-To ensure we were looking at stability of the scientific claim, we implemented a deterministic claim extraction parser, $C(y)$ \cite{ji2023survey}. We looked at 3 main metrics:
-1) \textit{Conclusion Agreement Rate (CAR):} The mode conclusion between the variants \cite{mizrahi2024state}.
-2) \textit{Errica Sensitivity ($S_\tau$):} The distribution of the labels \cite{errica2025wrong}.
-3) \textit{Mean Wording Similarity:} Ensuring we were looking at the stability of the claim and not the wording \cite{kamalloo2023evaluating}.
+To ensure we were looking at stability of the scientific claim, we implemented a deterministic claim extraction parser. We looked at 3 main metrics: 1) Conclusion Agreement Rate (CAR): The mode conclusion between the variants \cite{mizrahi2024state}. 2) Errica Sensitivity ($S_{\tau}$): The distribution of the labels \cite{errica2025wrong}. 3) Mean Wording Similarity: Ensuring we were looking at the stability of the claim and not the wording \cite{kamalloo2023evaluating}.
 
 \section{Results and Analysis}
-Overall, each model produced 450 responses. The overall results can be seen in Table \ref{tab:summary}, and detailed results in Table \ref{tab:breakdown}.
+Overall each model produced 450 responses. The overall results can be seen in Table~\ref{tab:summary}, and detailed results in Table~\ref{tab:breakdown}.
 
 \begin{table*}[htbp]
 \centering
@@ -92,12 +85,12 @@ Overall, each model produced 450 responses. The overall results can be seen in T
 \end{table*}
 
 \subsection{Model Size}
-The results show a clear trend: increasing the model size increases stability. However, it is still not acceptable for autonomous research \cite{qwen2024}. The 1.5B model had a multi-prompt CAR of 0.750 and normalised entropy sensitivity rate of 0.471. This is a huge improvement from the 0.5B model (CAR: 0.500, $S_\tau$: 0.847).
+The results show a clear trend, increasing the model size increases stability. However, it is still not acceptable for autonomous research \cite{qwen2024}. The 1.5B model had a multi-prompt CAR of 0.750 and normalised entropy sensitivity rate of 0.471. This is a huge improvement from the 0.5B model (CAR: 0.500, $S_{\tau}: 0.847$).
 
 However, having a CAR of 0.750 means 25\% of the time the model will contradict the mode conclusion using a meaning-preserving prompt variation \cite{errica2025wrong}. This is still too high, as 25\% of the time there will be errors in the extraction stage causing corrupted claims in the verification stages \cite{wu2023agentbench}.
 
 \subsection{Formatting Errors in 0.5B Model}
-The 0.5B-Instruct model had extreme overfitting to the instruction templates \cite{sclar2024quantifying}. Changing the separator in the prompt caused a 100\% conclusion flip rate compared to the baseline. The JSON formatting did not work: asking for the output to be returned in JSON format caused a 93.3\% conclusion flip rate. This shows that smaller models overfit to specific Markdown formats during instruction tuning \cite{ouyang2022training}.
+The 0.5B-Instruct model had extreme overfitting to the instruction templates \cite{sclar2024quantifying}. Changing the separator in the prompt caused a 100\% conclusion flip rate compared to the baseline. The JSON formatting did not work. Asking for the prompt to be returned in JSON format caused a 93.3\% conclusion flip rate. This shows that smaller models overfit to specific Markdown formats during instruction tuning \cite{ouyang2022training}.
 
 \begin{table}[htbp]
 \centering
@@ -117,36 +110,34 @@ Contextual & P7\_skeptical & 0.033 & 0.300 \\ \bottomrule
 \end{table}
 
 \subsection{Ordering and Wording Errors in 1.5B Model}
-Formatting issues were reduced in the 1.5B model. However, issues were still found with ordering and wording \cite{qwen2024}. Inverting the options from `yes/no/maybe' to ``maybe, no, or yes'' caused a large 46.7\% conclusion flip rate. This supports the positional bias theory proposed by Zheng et al.\ \cite{zheng2023judging} as the model focused on token position rather than the information contained in the abstract \cite{lu2022fantastically}.
+Formatting issues were reduced in the 1.5B model. However, issues were still found with ordering and wording \cite{qwen2024}. Inverting the options from `yes/no/maybe' to ``maybe, no, or yes'' caused a large 46.7\% conclusion flip rate. This supports the positional bias theory proposed by Zheng et al. \cite{zheng2023judging} as the model focused on token position rather than the information contained in the abstract \cite{lu2022fantastically}.
 
-A concise clinical paraphrase caused a 50.0\% conclusion flip rate \cite{errica2025wrong}. This shows that there is a 50/50 chance the user will receive a conflicting claim by simply changing how they word their question. This means the model is not reliable as an extraction agent.
+A concise clinical paraphrase caused a 50.0\% conclusion flip rate \cite{errica2025wrong}. This shows that there is a $50/50$ chance the user will receive a conflicting claim by simply changing how they word their question. This means the model is not reliable as an extraction agent.
 
 \begin{figure*}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{1.1.png}
-    \caption{Conclusion Instability (Flip Rates relative to the P0 Baseline) categorized by perturbation class. The 0.5B model fails catastrophically on surface formatting, while the 1.5B model remains highly vulnerable to semantic and positional shifts.}
+    \caption{Flip rates compared to the P0 baseline for each perturbation type. The 0.5B model had a 100\% flip rate on formatting changes, whilst the 1.5B model suffered from semantic and positional changes.}
     \label{fig:flip_rates}
 \end{figure*}
 
-\subsection{Prompt Variation vs.\ Sampling Noise}
-Sampling variance was not the cause \cite{wang2023self}. Runs of the Repeat Control showed that CAR was 0.913 for the 0.5B model and 0.813 for the 1.5B. This is much higher than the agreement between different prompts, meaning the prompt string was causing the instability \cite{mizrahi2024state}.
+\subsection{Prompt Variation vs Sampling Noise}
+Sampling variance was not the cause. Runs of the Repeat Control showed that CAR was 0.913 for the 0.5B model and 0.813 for the 1.5B. This is much higher than the agreement between different prompts, meaning the prompt string was causing the instability \cite{mizrahi2024state}.
 
 The wording similarity was very low. It was 0.202 and 0.166 across the variants as the models provided very differing explanations \cite{kamalloo2023evaluating}. Therefore, we needed to check CAR from the parsed claim to ensure we were looking at differences in the wording and not real contradictions \cite{elazar2021measuring}.
 
 \begin{figure*}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{1.2.png}
-    \caption{Conclusion Agreement Rate (CAR) vs.\ Mean Wording Similarity across models. The stark disparity confirms that conclusion instability is distinct from mere lexical variance.}
+    \caption{Conclusion Agreement Rate (CAR) compared with Mean Wording Similarity across both models. The large gap shows that conclusion flips are separate from changes in wording.}
     \label{fig:car_similarity}
 \end{figure*}
 
 \section{Discussion and Limitations}
-Multi-stage pipelines require consistent prompts \cite{wang2024survey, xi2023rise}. An extraction agent can change its conclusion 25\%--50\% of the time due to minor formatting and ordering changes; therefore, conclusions will be passed to verification stages further down the pipeline, causing the entire pipeline to fail \cite{mialon2023augmented, wu2023agentbench}. Single prompts should not be trusted; instead, AI research tools should be used that implement multiple variations of the prompt. Ensemble verification should also be used \cite{zhao2021calibrate}.
-
-This study does suffer a few limitations. Due to single-GPU memory and time constraints on the T4 \cite{jin2019pubmedqa}, only 30 questions from PubMedQA were used. Future work should include all 1,000 questions and look at other domains outside of biomedicine.
+Multi-stage pipelines require consistent prompts \cite{wang2024survey, xi2023rise}. An extraction agent can change its conclusion 25\%--50\% of the time due to minor formatting and ordering changes, therefore conclusions will be passed to verification stages further down the pipeline causing the entire pipeline to fail \cite{mialon2023augmented, wu2023agentbench}. Single prompts should not be trusted; instead, AI research tools should be used that implement multiple variations of the prompt. Ensemble verification should also be used \cite{zhao2021calibrate}. This study does suffer a few limitations. Due to single GPU memory and time constraints on the T4 \cite{jin2019pubmedqa}, only 30 questions from PubMedQA were used. Future work should include all 1000 questions and look at other domains outside of biomedicine.
 
 \section{Conclusion}
-Variations in prompts can cause large changes in claims made within LLMs \cite{errica2025wrong, sclar2024quantifying}. Using a deterministic claim parser, it has been shown that formatting, positional, and semantic changes cause high variability in conclusion. This is not caused by sampling variance \cite{wang2023self}.
+Variations in prompts can cause large changes in claims made within LLMs \cite{errica2025wrong, sclar2024quantifying}. Using a deterministic claim parser, it has been shown that formatting, positional and semantic changes cause high variability in conclusion. This is not caused by sampling variance \cite{wang2023self}.
 
 Whilst scaling helps, it is not a full solution \cite{qwen2024}. Although increasing the parameters from 0.5B to 1.5B helped reduce the number of formatting errors, the 1.5B model still had a 50\% flip rate with semantic paraphrasing. An LLM conclusion from one prompt cannot therefore be considered a reliable result \cite{turpin2023language}.
 
